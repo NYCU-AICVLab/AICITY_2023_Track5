@@ -1,0 +1,7 @@
+path: /workspace/datasets/aicity2023_track5/
+train: /workspace/datasets/aicity2023_track5/Train_split
+val: /workspace/datasets/aicity2023_track5/Val_split
+nc: 7
+
+names:
+     ["motorbike", "DHelmet", "DNoHelmet", "P1Helmet", "P1NoHelmet", "P2Helmet", "P2NoHelmet"] 
