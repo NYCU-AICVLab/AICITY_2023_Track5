@@ -1,0 +1,13 @@
+/pretrained/*
+/runs/
+/.idea/
+*.pyc
+/tools/private
+wandb/
+*/__pycache__
+*.so
+*.mp4
+*.pyc
+*.txt
+models/__pycache__
+models/__pycache__/__init__.cpython-37.pyc
