@@ -35,7 +35,7 @@ Next step combine the prediction with ground truth label. Each frame of the file
 ```shell
 python pseudo_label.py --pred_path <pred_label (*.txt)> --gt_path <pred_label (*.txt)> --save_path <save_path>
 ```
-## Inference
+## Inference (only detection)
 
 On video:
 ``` shell
@@ -46,6 +46,14 @@ On image:
 ``` shell
 python detect.py --weights <weight path (*.pt)> --conf 0.5 --img-size 1280 --source <image path (*.mp4)>
 ```
+
+## Inference (tracking)
+On video:
+``` shell
+ python mc_demo_prb.py --weights pretrained/AICity_best_New.pt --source <video path (*.mp4)> --save-txt --img-size 1280
+```
+
+You will get the submmision file in 'runs/detect/exp*/labels/AI_result.txt'
 
 ## Reference 
 This code is based on [PRBNet_Pytorch](https://github.com/pingyang1117/PRBNet_PyTorch)
