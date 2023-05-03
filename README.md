@@ -36,7 +36,7 @@ Next step combine the prediction with ground truth label. Each frame of the file
 python pseudo_label.py --pred_path <pred_label (*.txt)> --gt_path <pred_label (*.txt)> --save_path <save_path>
 ```
 ## Inference (only detection)
-Trained weight can be download ([here](https://drive.google.com/drive/folders/1NkIa2MUWFOcpTFnU3EeD34-XIhFjWGqS?usp=sharing)).
+Trained weight can be downloaded ([here](https://drive.google.com/drive/folders/1NkIa2MUWFOcpTFnU3EeD34-XIhFjWGqS?usp=sharing)).
 
 On video:
 ``` shell
