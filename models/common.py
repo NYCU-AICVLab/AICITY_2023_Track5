@@ -354,6 +354,41 @@ class BottleneckCSPC(nn.Module):
         return self.cv4(torch.cat((y1, y2), dim=1))
 
 
+class BottleneckMSPA(nn.Module):
+    # MSP https://ieeexplore.ieee.org/document/9506212
+    # https://ieeexplore.ieee.org/document/9920960
+    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
+        super(BottleneckMSPA, self).__init__()
+        c_1 = int(c2 * e)   # hidden channels 1
+        c_2 = int(c_1 * e)   # hidden channels 2
+        # self.cb1 = Bottleneck(c1, c_1,False)
+        self.cv1 = Conv(c1, c_1, 1, 1)
+        self.cb1 = nn.Sequential(*[Conv(c_1, c_1, 3, 1) for _ in range(n)])
+
+        # self.cb2 = Bottleneck(c_1, c_2,False)
+        self.cv2 = Conv(c_1*2, c_2, 1, 1)
+        self.cb2 = nn.Sequential(*[Conv(c_2, c_2, 3, 1) for _ in range(n)])
+
+        self.cv3 = Conv(c_1*2, c_1, 1, 1)
+
+        self.m1 = nn.Sequential(*[Bottleneck(c1, c2, shortcut, g, e=1.0) for _ in range(n)])
+
+    def forward(self, x):
+        y1_1 = self.cv1(x)
+        y1_2 = self.cb1(y1_1)
+        y1 = torch.cat((y1_1, y1_2), dim=1)
+
+        y2_1 = self.cv2(y1)
+        y2_2 = self.cb2(y2_1)
+
+        y3 = self.cv3(torch.cat((y1_1, y2_1, y2_2), dim=1))
+
+        return self.m1(torch.cat((y1_1, y3), dim=1))
+
+
+
+
+
 class ResCSPA(BottleneckCSPA):
     # CSP https://github.com/WongKinYiu/CrossStagePartialNetworks
     def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
