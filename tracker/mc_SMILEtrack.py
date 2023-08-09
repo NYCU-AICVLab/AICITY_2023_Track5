@@ -8,7 +8,7 @@ from tracker.gmc import GMC
 from tracker.basetrack import BaseTrack, TrackState
 from tracker.kalman_filter import KalmanFilter
 
-from fast_reid.fast_reid_interfece import FastReIDInterface
+# from fast_reid.fast_reid_interfece import FastReIDInterface
 from .networks_ver12 import load_model
 import torch
 
@@ -260,6 +260,7 @@ class SMILEtrack(object):
             self.encoder = load_model(self.weight_path)
             self.encoder = self.encoder.cuda()
             self.encoder = self.encoder.eval() 
+            # self.encoder = self.encoder.half() 
 
         self.gmc = GMC(method=args.cmc_method, verbose=[args.name, args.ablation])
 

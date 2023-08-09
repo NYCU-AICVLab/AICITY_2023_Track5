@@ -9,13 +9,13 @@ import torch.backends.cudnn as cudnn
 import numpy as np
 # from numpy import random
 
-from prb.models.experimental import attempt_load
-from prb.utils.datasets import LoadStreams, LoadImages
-from prb.utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, \
+from models.experimental import attempt_load
+from utils.datasets import LoadStreams, LoadImages
+from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, \
     apply_classifier, \
     scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
-from prb.utils.plots import plot_one_box
-from prb.utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
+from utils.plots import plot_one_box
+from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 
 from tracker.mc_SMILEtrack import SMILEtrack
 from tracker.tracking_utils.timer import Timer
@@ -100,6 +100,8 @@ def detect(save_img=True):
     if device.type != 'cpu':
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
     t0 = time.time()
+    inference_time = 0 
+    tracking_time = 0
     for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -131,6 +133,7 @@ def detect(save_img=True):
                 p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
 
             # Run tracker
+            t3 = time_synchronized()
             detections = []
             if len(det):
                 boxes = scale_coords(img.shape[2:], det[:, :4], im0.shape)
@@ -144,6 +147,7 @@ def detect(save_img=True):
             # print(im0.dtype)
 
             online_targets = tracker.update(detections, im0)
+            t4 = time_synchronized()
 
             online_tlwhs = []
             online_ids = []
@@ -164,14 +168,14 @@ def detect(save_img=True):
                     results.append(
                         f"{i + 1},{tid},{tlwh[0]:.2f},{tlwh[1]:.2f},{tlwh[2]:.2f},{tlwh[3]:.2f},{t.score:.2f},-1,-1,-1\n"
                     )
-                    filename = p.split("/")[-1].split(".")[0]  # "file"
-                    t.score = 0.99
-                    AICity_results.append(
-                        f"{int(filename)},{int(vid_cap.get(cv2.CAP_PROP_POS_FRAMES))},{int(tlwh[0])},{int(tlwh[1])},{int(tlwh[2])},{int(tlwh[3])},{int(tcls)+1},{t.score:.6f}\n"
-                    )
-                    AICity_MOT_results.append(
-                        f"{int(filename)},{int(vid_cap.get(cv2.CAP_PROP_POS_FRAMES))},{tid},{int(tlwh[0])},{int(tlwh[1])},{int(tlwh[2])},{int(tlwh[3])},{int(tcls)+1},{t.score:.6f}\n"
-                    )
+                    # filename = p.split("/")[-1].split(".")[0]  # "file"
+                    # t.score = 0.99
+                    # AICity_results.append(
+                    #     f"{int(filename)},{int(vid_cap.get(cv2.CAP_PROP_POS_FRAMES))},{int(tlwh[0])},{int(tlwh[1])},{int(tlwh[2])},{int(tlwh[3])},{int(tcls)+1},{t.score:.6f}\n"
+                    # )
+                    # AICity_MOT_results.append(
+                    #     f"{int(filename)},{int(vid_cap.get(cv2.CAP_PROP_POS_FRAMES))},{tid},{int(tlwh[0])},{int(tlwh[1])},{int(tlwh[2])},{int(tlwh[3])},{int(tcls)+1},{t.score:.6f}\n"
+                    # )
 
                     if save_img or view_img:  # Add bbox to image
                         if opt.hide_labels_name:
@@ -185,7 +189,10 @@ def detect(save_img=True):
             # write_results('./result.txt', results)
 
             # Print time (inference + NMS)
-            # print(f'{s}Done. ({t2 - t1:.3f}s)')
+            inference_time = inference_time + (t2-t1)
+            tracking_time = tracking_time + (t4-t3)
+            print(f'{s}detection. ({t2 - t1:.3f}s)')
+            print(f'{s}re-id. ({t4 - t3:.3f}s)')
 
             # Stream results
             if view_img:
@@ -210,14 +217,15 @@ def detect(save_img=True):
                             save_path += '.mp4'
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer.write(im0)
-        write_results_for_AICity(save_dir / 'labels/AI_result.txt', AICity_results)
-        write_results_for_AICity_MOT(save_dir / 'labels/AIMOT_result.txt', AICity_MOT_results)
+        # write_results_for_AICity(save_dir / 'labels/AI_result.txt', AICity_results)
+        # write_results_for_AICity_MOT(save_dir / 'labels/AIMOT_result.txt', AICity_MOT_results)
 
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
 
         # print(f"Results saved to {save_dir}{s}")
 
+    print("Total Time:",inference_time+tracking_time)
     print(f'Done. ({time.time() - t0:.3f}s)')
 
 
@@ -226,8 +234,8 @@ if __name__ == '__main__':
     parser.add_argument('--weights', nargs='+', type=str, default='best.pt', help='model.pt path(s)')
     parser.add_argument('--source', type=str, default='inference/images', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--img-size', type=int, default=1920, help='inference size (pixels)')
-    parser.add_argument('--conf-thres', type=float, default=0.92, help='object confidence threshold')
-    parser.add_argument('--iou-thres', type=float, default=0.65, help='IOU threshold for NMS')
+    parser.add_argument('--conf-thres', type=float, default=0.6, help='object confidence threshold')
+    parser.add_argument('--iou-thres', type=float, default=0.7, help='IOU threshold for NMS')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='display results')
     parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
@@ -245,9 +253,9 @@ if __name__ == '__main__':
 
     # tracking args
     parser.add_argument("--track_high_thresh", type=float, default=0.3, help="tracking confidence threshold")
-    parser.add_argument("--track_low_thresh", default=0.05, type=float, help="lowest detection threshold")
+    parser.add_argument("--track_low_thresh", default=0.1, type=float, help="lowest detection threshold")
     parser.add_argument("--new_track_thresh", default=0.4, type=float, help="new track thresh")
-    parser.add_argument("--track_buffer", type=int, default=30, help="the frames for keep lost tracks")
+    parser.add_argument("--track_buffer", type=int, default=20, help="the frames for keep lost tracks")
     parser.add_argument("--match_thresh", type=float, default=0.7, help="matching threshold for tracking")
     parser.add_argument("--aspect_ratio_thresh", type=float, default=1.6,
                         help="threshold for filtering out boxes of which aspect ratio are above the given value.")
@@ -259,7 +267,7 @@ if __name__ == '__main__':
     parser.add_argument("--cmc-method", default="sparseOptFlow", type=str, help="cmc method: sparseOptFlow | files (Vidstab GMC) | orb | ecc")
 
     # ReID
-    parser.add_argument("--with-reid", dest="with_reid", default=False, action="store_true", help="with ReID module.")
+    parser.add_argument("--with-reid", dest="with_reid", default=True, action="store_true", help="with ReID module.")
     parser.add_argument("--fast-reid-config", dest="fast_reid_config", default=r"fast_reid/configs/MOT17/sbs_S50.yml",
                         type=str, help="reid config file path")
     parser.add_argument("--fast-reid-weights", dest="fast_reid_weights", default=r"pretrained/mot17_sbs_S50.pth",
