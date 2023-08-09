@@ -51,7 +51,7 @@ python detect.py --weights <weight path (*.pt)> --conf 0.5 --img-size 1280 --sou
 ## Inference (tracking)
 On video:
 ``` shell
- python mc_demo_prb.py --weights pretrained/AICity_best_New.pt --source <video path (*.mp4)> --save-txt --img-size 1280
+ python AICity_demo_prb.py --weights pretrained/AICity_best_New.pt --source <video path (*.mp4)> --save-txt --img-size 1280
 ```
 
 You will get the submmision file in 'runs/detect/exp*/labels/AI_result.txt'
