@@ -133,7 +133,7 @@ def detect(save_img=True):
                 p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
 
             # Run tracker
-            t3 = time_synchronized()
+            
             detections = []
             if len(det):
                 boxes = scale_coords(img.shape[2:], det[:, :4], im0.shape)
@@ -146,6 +146,7 @@ def detect(save_img=True):
             # print(detections.dtype)
             # print(im0.dtype)
 
+            t3 = time_synchronized()
             online_targets = tracker.update(detections, im0)
             t4 = time_synchronized()
 
@@ -224,7 +225,9 @@ def detect(save_img=True):
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
 
         # print(f"Results saved to {save_dir}{s}")
-
+    
+    print("Inference Time:", inference_time)
+    print("Tracking Time:", tracking_time)
     print("Total Time:",inference_time+tracking_time)
     print(f'Done. ({time.time() - t0:.3f}s)')
 
@@ -267,7 +270,7 @@ if __name__ == '__main__':
     parser.add_argument("--cmc-method", default="sparseOptFlow", type=str, help="cmc method: sparseOptFlow | files (Vidstab GMC) | orb | ecc")
 
     # ReID
-    parser.add_argument("--with-reid", dest="with_reid", default=True, action="store_true", help="with ReID module.")
+    parser.add_argument("--with-reid", dest="with_reid", default=False, action="store_true", help="with ReID module.")
     parser.add_argument("--fast-reid-config", dest="fast_reid_config", default=r"fast_reid/configs/MOT17/sbs_S50.yml",
                         type=str, help="reid config file path")
     parser.add_argument("--fast-reid-weights", dest="fast_reid_weights", default=r"pretrained/mot17_sbs_S50.pth",
